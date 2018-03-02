@@ -33,9 +33,14 @@ class Trainer:
         for total_iter, images in enumerate(train_generator):
             batch_idx = train_generator.batch_index
             batch_size = images.shape[0] #train_generator.batch_size
-            idx = train_generator.index_array[0 + (batch_idx-1)*batch_size]
+            # idx = train_generator.index_array[0 + (batch_idx-1)*batch_size]
+            idx_list = train_generator.index_array[batch_idx-1:batch_idx-1+batch_size]
             # print (train_generator.filenames[idx])
-            list_filenames = train_generator.filenames[idx:idx+batch_size]
+            # list_filenames = train_generator.filenames[idx:idx+batch_size]
+            print (batch_idx, idx_list.shape)
+
+            list_filenames = np.array(train_generator.filenames)[idx_list]
+            
             list_filenames = [os.path.basename(path) for path in list_filenames]
             np_labels = np.array([self.name2label(name) for name in list_filenames], dtype=np.float32)
             np_labels /= 5.1
@@ -45,6 +50,7 @@ class Trainer:
                 print(list_filenames)
                 print(np_labels)
                 continue
+            # exit()
             yield (images, np_labels)
 
     def lr_step_decay(self, epoch):
