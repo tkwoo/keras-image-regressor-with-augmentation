@@ -31,19 +31,33 @@ class Trainer:
         return y_label
 
     def user_generation(self, train_generator):
+        cv2.namedWindow('show', 0)
+        cv2.resizeWindow('show',500, 500)
         for total_iter, images in enumerate(train_generator):
             batch_idx = train_generator.batch_index
             batch_size = images.shape[0] #train_generator.batch_size
             # idx = train_generator.index_array[0 + (batch_idx-1)*batch_size]
-            idx_list = train_generator.index_array[batch_idx-1:batch_idx-1+batch_size]
+            batch_idx = batch_idx - 1 if batch_idx !=0 else train_generator.n//train_generator.batch_size
+            idx_list = train_generator.index_array[(batch_idx)*batch_size:(batch_idx)*batch_size+batch_size]
             # print (train_generator.filenames[idx])
             # list_filenames = train_generator.filenames[idx:idx+batch_size]
-            print (batch_idx, idx_list.shape)
+            print (batch_idx, idx_list.shape, train_generator.n)
 
             list_filenames = np.array(train_generator.filenames)[idx_list]
             
             list_filenames = [os.path.basename(path) for path in list_filenames]
             np_labels = np.array([self.name2label(name) for name in list_filenames], dtype=np.float32)
+            if batch_idx == train_generator.n//train_generator.batch_size:
+                for idx in range(len(images)):
+                    cv2.imshow('show', cv2.cvtColor(images[idx], cv2.COLOR_RGB2BGR))
+                    print (list_filenames[idx])
+                    print (np_labels[idx])
+                    key = cv2.waitKey()
+                    if key == 27:
+                        exit()
+                    elif key == ord('n'):
+                        break
+
             np_labels /= 5.1
             if len(images) != len(np_labels):
                 print("error")
@@ -51,7 +65,7 @@ class Trainer:
                 print(list_filenames)
                 print(np_labels)
                 continue
-            exit()
+            # exit()
             # yield (images, np_labels)
 
     def lr_step_decay(self, epoch):
