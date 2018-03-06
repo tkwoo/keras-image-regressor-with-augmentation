@@ -1,3 +1,4 @@
+from __future__ import print_function
 import tensorflow as tf
 import keras.backend as K
 import keras
@@ -14,7 +15,7 @@ def print_label_dict(dataset_name):
     if dataset_name == 'fer2013plus':
         return dict_fer2013plus_label
     else:
-        print 'dataset name error'
+        print ('dataset name error')
         return None
 
 def get_image_name_list(dir_path):

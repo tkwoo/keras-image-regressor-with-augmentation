@@ -1,3 +1,4 @@
+from __future__ import print_function
 from keras.models import Model
 from keras.callbacks import ModelCheckpoint
 from keras.preprocessing.image import ImageDataGenerator
@@ -45,7 +46,7 @@ class predictor:
 
         weight_list = sorted(glob(os.path.join(self.flag.ckpt_dir, self.flag.ckpt_name, 'weight*')))
         model.load_weights(weight_list[-1])
-        print '[*] model load : %s'%weight_list[-1]
+        print ('[*] model load : %s'%weight_list[-1])
         
         label_list = [os.path.basename(path) for path 
                     in sorted(glob(os.path.join(self.flag.data_path, '*')))]
@@ -76,7 +77,8 @@ class predictor:
         
         for idx in range(classmap.shape[0]):
             predicted_label = prediction_labels[idx]
-            print "[*] %d's label : %s"%(idx, label_list[predicted_label])
+            print ("[*] %d's label : %s"%(idx, label_list[predicted_label]))
+            # print(np_original_data_list.shape)
             img_original = np_original_data_list[idx,:,:,:]
             img_classmap = classmap[idx,:,:,predicted_label]
             color_classmap = cv2.applyColorMap(img_classmap, cv2.COLORMAP_JET)
@@ -85,7 +87,7 @@ class predictor:
             # cv2.imwrite("./result/dog_%d.png"%idx, img_show)
             # if cv2.waitKey(1) == 27:
             #     break
-        print "[*] done"
+        print ("[*] done")
 
     def evaluate(self):
         img_size = self.flag.image_size
@@ -109,9 +111,9 @@ class predictor:
             weight_file_path = weight_list[-1]
         model.load_weights(weight_file_path)
         model.compile(optimizer='Adam', loss='categorical_crossentropy', metrics=['accuracy'])
-        print "[*] model load : %s"%weight_file_path#weight_list[-1]
+        print ("[*] model load : %s"%weight_file_path) #weight_list[-1])
         t_total = (cv2.getTickCount() - t_start) / cv2.getTickFrequency() * 1000 
-        print "[*] model loading Time: %.3f ms"%t_total
+        print ("[*] model loading Time: %.3f ms"%t_total)
 
         test_datagen = ImageDataGenerator(
             preprocessing_function=centering,
@@ -128,9 +130,9 @@ class predictor:
         t_start = cv2.getTickCount()
         loss, acc = model.evaluate_generator(test_generator, test_generator.n // self.flag.batch_size)
         t_total = (cv2.getTickCount() - t_start) / cv2.getTickFrequency() * 1000 
-        print '[*] test loss : %.4f'%loss
-        print '[*] test acc  : %.4f'%acc
-        print "[*] evaluation Time: %.3f ms"%t_total
+        print ('[*] test loss : %.4f'%loss)
+        print ('[*] test acc  : %.4f'%acc)
+        print ("[*] evaluation Time: %.3f ms"%t_total)
 
         ### confusion matrix
         pred_generator = test_datagen.flow_from_directory(
@@ -174,9 +176,9 @@ class predictor:
         # model = models.vgg_like(self.flag)        
         weight_list = sorted(glob(os.path.join(self.flag.ckpt_dir, self.flag.ckpt_name, "weight*")))
         model.load_weights(weight_list[-1])
-        print "[*] model load: %s"%weight_list[-1]
+        print ("[*] model load: %s"%weight_list[-1])
         t_total = (cv2.getTickCount() - t_start) / cv2.getTickFrequency() * 1000 
-        print "[*] model loading Time: %.3f ms"%t_total
+        print ("[*] model loading Time: %.3f ms"%t_total)
 
         if os.path.isdir(self.flag.test_image_path):
             image_name_list = utils.get_image_name_list(self.flag.test_image_path)
@@ -209,19 +211,19 @@ class predictor:
             t_start = cv2.getTickCount()
             result = model.predict(img, 1)
             t_total = (cv2.getTickCount() - t_start) / cv2.getTickFrequency() * 1000 
-            print "[*] Processing Time: %.3f ms"%t_total
+            print ("[*] Processing Time: %.3f ms"%t_total)
             
-            print os.path.basename(img_name),
+            print (os.path.basename(img_name),)
             # print result
             
             predict_label = np.argmax(result)
-            print predict_label, 
+            print (predict_label, )
             # print predict_label.dtype
             # print predict_label.astype(np.str)
             # exit()
             sm_str = ''.join('%0.3f '%e for e in result[0])[:-1]
             sm_stdprint = ''.join('%0.3f,'%e for e in result[0])[:-1]
-            print sm_stdprint
+            print (sm_stdprint)
             
             # inserting_data = [predict_label.astype(np.str), sm_str]
             # data_test.ix[os.path.basename(img_name)] = inserting_data

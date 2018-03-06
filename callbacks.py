@@ -1,3 +1,4 @@
+from __future__ import print_function
 import keras
 import cv2
 import numpy as np
@@ -54,7 +55,7 @@ class trainCheck(keras.callbacks.Callback):
         t_start = cv2.getTickCount()
         result = model.predict(input_data, 1)
         t_total = (cv2.getTickCount() - t_start) / cv2.getTickFrequency() * 1000
-        print "\n[*] Predict Time: %.3f ms"%t_total
+        print ("\n[*] Predict Time: %.3f ms"%t_total)
         
         prediction_labels = np.argmax(result, axis=1)
         classmap = utils.get_classmap_keras(self.flag, self.model, input_data, prediction_labels[0])
@@ -73,7 +74,7 @@ class trainCheck(keras.callbacks.Callback):
         output_path = os.path.join(output_path, 
                             '%s_%s_'%(self.epoch, index)+os.path.basename(image_name))
         cv2.imwrite(output_path, imgShow)
-        print "[*] SAVE:[%s]"%output_path
+        print ("[*] SAVE:[%s]"%output_path)
         # cv2.imwrite(os.path.join(output_path, 'img%04d.png'%epoch), imgShow)
         # cv2.namedWindow("show", 0)
         # cv2.resizeWindow("show", 800, 800)

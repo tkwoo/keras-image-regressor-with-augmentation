@@ -1,3 +1,4 @@
+from __future__ import print_function
 from keras.models import Model, load_model
 from keras.callbacks import ModelCheckpoint, LearningRateScheduler, CSVLogger, EarlyStopping
 from keras.preprocessing.image import ImageDataGenerator
@@ -50,8 +51,8 @@ class Trainer:
                 print(list_filenames)
                 print(np_labels)
                 continue
-            # exit()
-            yield (images, np_labels)
+            exit()
+            # yield (images, np_labels)
 
     def lr_step_decay(self, epoch):
         init_lr = self.flag.initial_learning_rate
@@ -114,7 +115,7 @@ class Trainer:
         
         if self.flag.pretrained_weight_path != None:
             model.load_weights(self.flag.pretrained_weight_path)
-            print "[*] loaded pretrained model: %s"%self.flag.pretrained_weight_path
+            print ("[*] loaded pretrained model: %s"%self.flag.pretrained_weight_path)
         if not os.path.exists(os.path.join(self.flag.ckpt_dir, self.flag.ckpt_name)):
             os.mkdir(os.path.join(self.flag.ckpt_dir, self.flag.ckpt_name))
         model_json = model.to_json()

@@ -1,3 +1,4 @@
+from __future__ import print_function
 import cv2
 import numpy as np
 import os
@@ -56,7 +57,7 @@ def main():
         cam_op = predict.predictor(flag)
         cam_op.cam()
     else:
-        print 'not supported'
+        print ('not supported')
 
 if __name__ == '__main__':
     main()
