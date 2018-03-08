@@ -62,7 +62,12 @@ def plot_confusion_matrix(cm, classes,
 
 def image_read(path, color_mode=1, target_size=128):
     img = cv2.imread(path, color_mode)
-    img = cv2.resize(img, (target_size, target_size))
+    if type(target_size) == int:
+        img = cv2.resize(img, (target_size, target_size))
+    elif target_size == None:
+        pass
+    else:
+        img = cv2.resize(img, (target_size[0], target_size[1]))
     show = img
     if color_mode == 1:
         b,g,r = cv2.split(img)

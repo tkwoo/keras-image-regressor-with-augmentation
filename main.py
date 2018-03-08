@@ -26,6 +26,8 @@ parser.add_argument("--test_image_path",
 # parser.add_argument("--color_mode", help="color mode", default=1, type=int)
 # parser.add_argument("--num_classes", help="number of classes", default=2, type=int)
 parser.add_argument("--image_size", help="image size", default=96, type=int)
+parser.add_argument("--image_width", default=320)
+parser.add_argument("--image_height", default=240)
 parser.add_argument("--batch_size", help="batch size", default=16, type=int)
 parser.add_argument("--ckpt_dir", help="checkpoint root directory", default='./checkpoint')
 parser.add_argument("--ckpt_name", help="[.../ckpt_dir/ckpt_name/weights.h5]", default='vgg')
@@ -49,7 +51,8 @@ def main():
         train_op.train()
     elif flag.mode == 'predict':
         predict_op = predict.predictor(flag)
-        predict_op.inference()
+        # predict_op.inference()
+        predict_op.inference_temp()
     elif flag.mode == 'eval':
         eval_op = predict.predictor(flag)
         eval_op.evaluate()

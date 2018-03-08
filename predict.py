@@ -23,11 +23,43 @@ from utils import image_read
 from utils import plot_confusion_matrix
 import utils
 
+import face_recognition
+
 from six import next
 
 class predictor:
     def __init__(self, flag):
         self.flag = flag
+        self.pd_label = pd.read_csv('./label.csv')
+
+    def name2label(self, name):
+        y_label = self.pd_label[self.pd_label['Filename']==name]
+        y_label = y_label.values[0][1:]
+        return y_label
+
+    def user_generation(self, train_generator):
+        # cv2.namedWindow('show', 0)
+        # cv2.resizeWindow('show',500, 500)
+        for total_iter, images in enumerate(train_generator):
+            batch_idx = train_generator.batch_index
+            batch_size = images.shape[0]
+
+            if train_generator.batch_index != 0:
+                batch_idx = batch_idx - 1
+            else:
+                batch_idx = train_generator.n//train_generator.batch_size
+            
+            idx_list = train_generator.index_array[batch_idx*train_generator.batch_size:batch_idx*train_generator.batch_size+batch_size]
+            # print (batch_idx, idx_list.shape, train_generator.n)
+
+            list_filenames = np.array(train_generator.filenames)[idx_list]
+            
+            list_filenames = [os.path.basename(path) for path in list_filenames]
+            np_labels = np.array([self.name2label(name) for name in list_filenames], dtype=np.float32)
+
+            np_labels /= 5
+            
+            yield (images, np_labels)
 
     def cam(self):
         img_size = self.flag.image_size
@@ -110,7 +142,7 @@ class predictor:
             weight_list = sorted(glob(os.path.join(self.flag.ckpt_dir, self.flag.ckpt_name, "weight*")))
             weight_file_path = weight_list[-1]
         model.load_weights(weight_file_path)
-        model.compile(optimizer='Adam', loss='categorical_crossentropy', metrics=['accuracy'])
+        model.compile(optimizer='Adam', loss='mse', metrics=['mae'])
         print ("[*] model load : %s"%weight_file_path) #weight_list[-1])
         t_total = (cv2.getTickCount() - t_start) / cv2.getTickFrequency() * 1000 
         print ("[*] model loading Time: %.3f ms"%t_total)
@@ -120,44 +152,118 @@ class predictor:
             rescale=1./255)
         
         test_generator = test_datagen.flow_from_directory(
-                os.path.join(self.flag.data_path, 'test'),
+                os.path.join(self.flag.data_path, 'val'),
                 target_size=(img_size, img_size),
                 batch_size=batch_size,
                 shuffle=False,
-                #color_mode='grayscale',
-                class_mode='categorical')
+                color_mode='rgb',
+                class_mode=None)
+
+        user_test_gen = self.user_generation(test_generator)
 
         t_start = cv2.getTickCount()
-        loss, acc = model.evaluate_generator(test_generator, test_generator.n // self.flag.batch_size)
+        loss, acc = model.evaluate_generator(user_test_gen, test_generator.n // self.flag.batch_size)
         t_total = (cv2.getTickCount() - t_start) / cv2.getTickFrequency() * 1000 
         print ('[*] test loss : %.4f'%loss)
         print ('[*] test acc  : %.4f'%acc)
         print ("[*] evaluation Time: %.3f ms"%t_total)
 
         ### confusion matrix
-        pred_generator = test_datagen.flow_from_directory(
-                os.path.join(self.flag.data_path, 'test'),
-                target_size=(img_size, img_size),
-                batch_size=1,
-                shuffle=False,
-                #color_mode='grayscale',
-                class_mode='categorical')
+        # pred_generator = test_datagen.flow_from_directory(
+        #         os.path.join(self.flag.data_path, 'val'),
+        #         target_size=(img_size, img_size),
+        #         batch_size=1,
+        #         shuffle=False,
+        #         #color_mode='grayscale',
+        #         class_mode='categorical')
 
-        pred = model.predict_generator(pred_generator, test_generator.n)
-        y_pred = np.argmax(pred, axis=1)
-        y_true = pred_generator.classes
+        # pred = model.predict_generator(pred_generator, test_generator.n)
+        # y_pred = np.argmax(pred, axis=1)
+        # y_true = pred_generator.classes
         
-        cnf_matrix = confusion_matrix(y_true, y_pred)
-        np.set_printoptions(precision=2)
+        # cnf_matrix = confusion_matrix(y_true, y_pred)
+        # np.set_printoptions(precision=2)
         # Plot non-normalized confusion matrix
-        plt.figure()
-        class_names = ['neutral', 'happiness', 'surprise', 'sadness', 'anger', 'disgust', 'fear', 'contempt']
-        plot_confusion_matrix(cnf_matrix, classes=class_names, title='Confusion matrix, without normalization')
-        # Plot normalized confusion matrix
-        plt.figure()
-        plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,title='Normalized confusion matrix')
+        # plt.figure()
+        # class_names = ['neutral', 'happiness', 'surprise', 'sadness', 'anger', 'disgust', 'fear', 'contempt']
+        # plot_confusion_matrix(cnf_matrix, classes=class_names, title='Confusion matrix, without normalization')
+        # # Plot normalized confusion matrix
+        # plt.figure()
+        # plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,title='Normalized confusion matrix')
 
-        plt.show()
+        # plt.show()
+    
+    def inference_temp(self):
+        img_size = (self.flag.image_width, self.flag.image_height)
+        batch_size = self.flag.batch_size
+        epochs = self.flag.total_epoch
+
+        ### initialize
+        t_start = cv2.getTickCount()
+        config = tf.ConfigProto()
+        # config.gpu_options.per_process_gpu_memory_fraction = 0.9
+        config.gpu_options.allow_growth = True
+        set_session(tf.Session(config=config))
+
+        with open(os.path.join(self.flag.ckpt_dir, self.flag.ckpt_name, 'model.json'), 'r') as json_file:
+            loaded_model_json = json_file.read()
+        model = model_from_json(loaded_model_json)
+        # model = models.vgg_like(self.flag)        
+        weight_list = sorted(glob(os.path.join(self.flag.ckpt_dir, self.flag.ckpt_name, "weight*")))
+        model.load_weights(weight_list[-1])
+        print ("[*] model load: %s"%weight_list[-1])
+        t_total = (cv2.getTickCount() - t_start) / cv2.getTickFrequency() * 1000 
+        print ("[*] model loading Time: %.3f ms"%t_total)
+
+        ### dataset
+        image_name_list = ['./data/iu1.jpg', './data/dh3.jpg', './data/tkwoo2.jpg']
+        # image_name_list = ['./data/yh.jpg', './data/tkwoo2.jpg']
+        # image_name_list = ['./data/yui2.png', './data/yui3.png', './data/yui4.png', './data/yui5.png']
+        gap = 40
+        for img_name in image_name_list:
+            img, show = image_read(img_name, 1, target_size=None)
+            rgb_ori = cv2.cvtColor(show, cv2.COLOR_BGR2RGB)
+            face_location = face_recognition.face_locations(rgb_ori)
+            # face_location = (np.array(face_location) - common_margin).tolist()
+            t,r,b,l = face_location[0]
+            t,r,b,l = (t-gap,r+gap,b+gap,l-gap)
+            crop_show = show[t:b,l:r]
+            cv2.imshow('hi', crop_show)
+            crop_img = img[t:b,l:r]
+            crop_img = cv2.resize(crop_img, (96,96))
+
+            # aspect_ratio = (r-l) / (b-t)
+            # print (aspect_ratio)
+            img = np.expand_dims(crop_img, 0)
+            
+            t_start = cv2.getTickCount()
+            result = model.predict(img, 1)
+            t_total = (cv2.getTickCount() - t_start) / cv2.getTickFrequency() * 1000 
+            print ("[*] Processing Time: %.3f ms"%t_total)
+            
+            print (os.path.basename(img_name),)
+            # print result
+            
+            # predict_label = np.argmax(result)
+            print (result[0]*5)
+            # print predict_label.dtype
+            # print predict_label.astype(np.str)
+            # exit()
+            # sm_str = ''.join('%0.3f '%e for e in result[0])[:-1]
+            # sm_stdprint = ''.join('%0.3f,'%e for e in result[0])[:-1]
+            # print (sm_stdprint)
+            
+            cv2.rectangle(show, (l,t), (r,b), (0,0,0), 2)
+            cv2.imshow('show', show)
+            key = cv2.waitKey()
+            if key == 27:
+                exit()
+            continue
+            
+            # cv2.imshow("show", show)
+            # if cv2.waitKey(0) == 27:
+            #     break
+        # data_test.to_csv('./result.csv')
     
     def inference(self):
         img_size = self.flag.image_size
@@ -232,6 +338,4 @@ class predictor:
             # if cv2.waitKey(0) == 27:
             #     break
         # data_test.to_csv('./result.csv')
-    
-
 

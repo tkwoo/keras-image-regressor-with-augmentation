@@ -112,7 +112,7 @@ class Trainer:
         lr = self.flag.initial_learning_rate
         model = models.vgg_like_regressor(self.flag)
                 
-        model.compile(optimizer=Adam(lr=lr, decay=1e-6), loss='mse')
+        model.compile(optimizer=Adam(lr=lr, decay=1e-6), loss='mse', metrics='mae')
         
         if self.flag.pretrained_weight_path != None:
             model.load_weights(self.flag.pretrained_weight_path)
