@@ -32,8 +32,8 @@ class Trainer:
         return y_label
 
     def user_generation(self, train_generator):
-        cv2.namedWindow('show', 0)
-        cv2.resizeWindow('show',500, 500)
+        # cv2.namedWindow('show', 0)
+        # cv2.resizeWindow('show',500, 500)
         for total_iter, images in enumerate(train_generator):
             batch_idx = train_generator.batch_index
             batch_size = images.shape[0]
@@ -71,11 +71,11 @@ class Trainer:
         train_datagen = ImageDataGenerator(
             preprocessing_function=centering,
             rescale=1./255,
-            shear_range=0.1,
-            zoom_range=0.1,
-            rotation_range=10,
-            width_shift_range=0.1,
-            height_shift_range=0.1,
+            shear_range=0.,
+            zoom_range=0.3,
+            rotation_range=30,
+            width_shift_range=0.2,
+            height_shift_range=0.2,
             horizontal_flip=True
             )
 
@@ -112,7 +112,7 @@ class Trainer:
         lr = self.flag.initial_learning_rate
         model = models.vgg_like_regressor(self.flag)
                 
-        model.compile(optimizer=Adam(lr=lr, decay=1e-6), loss='mse', metrics='mae')
+        model.compile(optimizer=Adam(lr=lr, decay=1e-6), loss='mse', metrics=['mae'])
         
         if self.flag.pretrained_weight_path != None:
             model.load_weights(self.flag.pretrained_weight_path)

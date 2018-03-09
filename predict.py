@@ -216,42 +216,36 @@ class predictor:
         print ("[*] model loading Time: %.3f ms"%t_total)
 
         ### dataset
-        image_name_list = ['./data/iu1.jpg', './data/dh3.jpg', './data/tkwoo2.jpg']
-        # image_name_list = ['./data/yh.jpg', './data/tkwoo2.jpg']
+        # image_name_list = ['./data/iu1.jpg', './data/dh3.jpg', './data/tkwoo2.jpg']
+        image_name_list = ['data/shlee.jpg', './data/g1.png', './data/g2.png', './data/g3.png', './data/g4.png']
+        # image_name_list = ['./data/temp0.png', './data/temp1.png', './data/temp2.png', './data/temp3.png']
+        # image_name_list = ['./data/iusuji.jpg', './data/sejung.jpg', './data/sj3.jpg']
         # image_name_list = ['./data/yui2.png', './data/yui3.png', './data/yui4.png', './data/yui5.png']
-        gap = 40
+        # gap = 40
         for img_name in image_name_list:
             img, show = image_read(img_name, 1, target_size=None)
             rgb_ori = cv2.cvtColor(show, cv2.COLOR_BGR2RGB)
-            face_location = face_recognition.face_locations(rgb_ori)
+            face_location = face_recognition.face_locations(rgb_ori,0,'cnn')
             # face_location = (np.array(face_location) - common_margin).tolist()
             t,r,b,l = face_location[0]
-            t,r,b,l = (t-gap,r+gap,b+gap,l-gap)
-            crop_show = show[t:b,l:r]
-            cv2.imshow('hi', crop_show)
-            crop_img = img[t:b,l:r]
-            crop_img = cv2.resize(crop_img, (96,96))
-
-            # aspect_ratio = (r-l) / (b-t)
-            # print (aspect_ratio)
-            img = np.expand_dims(crop_img, 0)
             
-            t_start = cv2.getTickCount()
-            result = model.predict(img, 1)
-            t_total = (cv2.getTickCount() - t_start) / cv2.getTickFrequency() * 1000 
-            print ("[*] Processing Time: %.3f ms"%t_total)
-            
-            print (os.path.basename(img_name),)
-            # print result
-            
-            # predict_label = np.argmax(result)
-            print (result[0]*5)
-            # print predict_label.dtype
-            # print predict_label.astype(np.str)
-            # exit()
-            # sm_str = ''.join('%0.3f '%e for e in result[0])[:-1]
-            # sm_stdprint = ''.join('%0.3f,'%e for e in result[0])[:-1]
-            # print (sm_stdprint)
+            for i in range(4):
+                gap = 15*i
+                t,r,b,l = (t-gap,r+gap,b+gap,l-gap)
+                t = max([t,0])
+                r = min([r,img.shape[1]])
+                b = min([b,img.shape[0]])
+                l = max([l,0])
+                crop_show = show[t:b,l:r]
+                crop_img = img[t:b,l:r]
+                crop_img = cv2.resize(crop_img, (96,96))
+                img_input = np.expand_dims(crop_img, 0)
+                
+                t_start = cv2.getTickCount()
+                result = model.predict(img_input, 1)
+                t_total = (cv2.getTickCount() - t_start) / cv2.getTickFrequency() * 1000 
+                print ("[*] Processing Time: %.3f ms"%t_total)
+                print (gap, os.path.basename(img_name), result[0]*5)
             
             cv2.rectangle(show, (l,t), (r,b), (0,0,0), 2)
             cv2.imshow('show', show)
@@ -339,3 +333,86 @@ class predictor:
             #     break
         # data_test.to_csv('./result.csv')
 
+    def inference_MIT(self):
+        img_size = (self.flag.image_width, self.flag.image_height)
+        batch_size = self.flag.batch_size
+        epochs = self.flag.total_epoch
+
+        ### initialize
+        t_start = cv2.getTickCount()
+        config = tf.ConfigProto()
+        # config.gpu_options.per_process_gpu_memory_fraction = 0.9
+        config.gpu_options.allow_growth = True
+        set_session(tf.Session(config=config))
+
+        with open(os.path.join(self.flag.ckpt_dir, self.flag.ckpt_name, 'model.json'), 'r') as json_file:
+            loaded_model_json = json_file.read()
+        model = model_from_json(loaded_model_json)
+        # model = models.vgg_like(self.flag)        
+        weight_list = sorted(glob(os.path.join(self.flag.ckpt_dir, self.flag.ckpt_name, "weight*")))
+        model.load_weights(weight_list[-1])
+        print ("[*] model load: %s"%weight_list[-1])
+        t_total = (cv2.getTickCount() - t_start) / cv2.getTickFrequency() * 1000 
+        print ("[*] model loading Time: %.3f ms"%t_total)
+
+        ### dataset
+        image_name_list = sorted(glob('/run/media/tkwoo/myWorkspace/workspace/01.dataset/04.facedataset/MIT_LK_SELF_images/*.png'))
+        
+        # fOut = open('./MIT_LK_SELF_pred.csv', 'w')
+        pd_data = pd.read_csv('./temp.csv', names=['name', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'])
+        np_data = pd_data.values
+
+        enter_idx = 0
+        for idx, img_name in enumerate(image_name_list):
+            if idx%10 == 0 and idx != 0:
+                enter_idx += 1
+            # if idx < 4080:
+                # continue
+            img, show = image_read(img_name, 1, target_size=None)
+            rgb_ori = cv2.cvtColor(show, cv2.COLOR_BGR2RGB)
+            face_location = face_recognition.face_locations(rgb_ori, 0, 'cnn')
+            # face_location = (np.array(face_location) - common_margin).tolist()
+            if face_location is None or len(face_location) == 0:
+                continue
+            t,r,b,l = face_location[0]
+            
+            gap = 0
+            t,r,b,l = (t-gap,r+gap,b+gap,l-gap)
+            t = max([t,0])
+            r = min([r,img.shape[1]])
+            b = min([b,img.shape[0]])
+            l = max([l,0])
+            crop_show = show[t:b,l:r]
+            crop_img = img[t:b,l:r]
+            crop_img = cv2.resize(crop_img, (96,96))
+            img_input = np.expand_dims(crop_img, 0)
+            
+            t_start = cv2.getTickCount()
+            result = model.predict(img_input, 1)
+            t_total = (cv2.getTickCount() - t_start) / cv2.getTickFrequency() * 1000 
+            # print ("[*] Processing Time: %.3f ms"%t_total)
+            print (idx, os.path.basename(img_name), result[0]*5)
+            # print (type('%.3f'%float(result[0][0]*5)))
+            
+            parsed_name = os.path.basename(img_name).split('_')
+            human_id = parsed_name[1]
+            human_idx = parsed_name[2].split('.')[0]
+            # print (human_idx)
+            # print (type(np_data[idx][0]), type(human_id))
+            if int(np_data[enter_idx][0]) != int(human_id):
+                print ('wrong')
+                print (int(np_data[idx][0]), int(human_id))
+                exit()
+            np_data[enter_idx][int(human_idx)+1] = '%.3f'%float(result[0][0]*5)
+
+            pd_out = pd.DataFrame(data=np_data, columns=['name', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'])
+            pd_out.to_csv('result_%02d.csv'%gap)
+
+            cv2.rectangle(show, (l,t), (r,b), (0,0,0), 2)
+            cv2.imshow('show', show)
+            key = cv2.waitKey(1)
+            if key == 27:
+                exit()
+            continue
+
+        

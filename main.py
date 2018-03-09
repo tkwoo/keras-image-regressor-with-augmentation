@@ -53,6 +53,7 @@ def main():
         predict_op = predict.predictor(flag)
         # predict_op.inference()
         predict_op.inference_temp()
+        # predict_op.inference_MIT()
     elif flag.mode == 'eval':
         eval_op = predict.predictor(flag)
         eval_op.evaluate()
