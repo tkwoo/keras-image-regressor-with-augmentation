@@ -216,11 +216,11 @@ class predictor:
         print ("[*] model loading Time: %.3f ms"%t_total)
 
         ### dataset
-        # image_name_list = ['./data/iu1.jpg', './data/dh3.jpg', './data/tkwoo2.jpg']
-        image_name_list = ['data/shlee.jpg', './data/g1.png', './data/g2.png', './data/g3.png', './data/g4.png']
+        # image_name_list = ['./data/g1.png','./data/iu1.jpg', './data/dh3.jpg', './data/tkwoo2.jpg']
+        # image_name_list = ['./data/g1.png', 'data/shlee.jpg', './data/g1.png', './data/g2.png', './data/g3.png', './data/g4.png']
         # image_name_list = ['./data/temp0.png', './data/temp1.png', './data/temp2.png', './data/temp3.png']
         # image_name_list = ['./data/iusuji.jpg', './data/sejung.jpg', './data/sj3.jpg']
-        # image_name_list = ['./data/yui2.png', './data/yui3.png', './data/yui4.png', './data/yui5.png']
+        image_name_list = ['./data/yui2.png', './data/yui3.png', './data/yui4.png', './data/yui5.png']
         # gap = 40
         for img_name in image_name_list:
             img, show = image_read(img_name, 1, target_size=None)
@@ -229,23 +229,25 @@ class predictor:
             # face_location = (np.array(face_location) - common_margin).tolist()
             t,r,b,l = face_location[0]
             
-            for i in range(4):
-                gap = 15*i
-                t,r,b,l = (t-gap,r+gap,b+gap,l-gap)
+            for i in range(1):
+                gap_y = int(round((r-l)*0.5))
+                gap_x = int(round(((r-l+2*gap_y)*4/3-(r-l))/2))
+                t,r,b,l = (t-gap_y,r+gap_x,b+gap_y,l-gap_x)
+                print ((b-t)/(r-l))
                 t = max([t,0])
                 r = min([r,img.shape[1]])
                 b = min([b,img.shape[0]])
                 l = max([l,0])
                 crop_show = show[t:b,l:r]
                 crop_img = img[t:b,l:r]
-                crop_img = cv2.resize(crop_img, (96,96))
+                crop_img = cv2.resize(crop_img, (160,120))
                 img_input = np.expand_dims(crop_img, 0)
                 
                 t_start = cv2.getTickCount()
                 result = model.predict(img_input, 1)
                 t_total = (cv2.getTickCount() - t_start) / cv2.getTickFrequency() * 1000 
                 print ("[*] Processing Time: %.3f ms"%t_total)
-                print (gap, os.path.basename(img_name), result[0]*5)
+                print (os.path.basename(img_name), result[0]*5)
             
             cv2.rectangle(show, (l,t), (r,b), (0,0,0), 2)
             cv2.imshow('show', show)

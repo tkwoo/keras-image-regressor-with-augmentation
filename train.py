@@ -19,12 +19,12 @@ import models
 import callbacks
 from utils import centering
 from utils import un_centering
-from keras.optimizers import Adam
+from keras.optimizers import Adam, RMSprop
 
 class Trainer:
     def __init__(self, flag):
         self.flag = flag
-        self.pd_label = pd.read_csv('./label.csv')
+        self.pd_label = pd.read_csv('./attraction_for_training.csv')
 
     def name2label(self, name):
         y_label = self.pd_label[self.pd_label['Filename']==name]
@@ -72,10 +72,10 @@ class Trainer:
             preprocessing_function=centering,
             rescale=1./255,
             shear_range=0.,
-            zoom_range=0.3,
-            rotation_range=30,
-            width_shift_range=0.2,
-            height_shift_range=0.2,
+            zoom_range=0.2,
+            rotation_range=10,
+            width_shift_range=0.1,
+            height_shift_range=0.1,
             horizontal_flip=True
             )
 
@@ -83,10 +83,11 @@ class Trainer:
             preprocessing_function=centering,
             rescale=1./255
             )
-
+        
         train_generator = train_datagen.flow_from_directory(
                 os.path.join(self.flag.data_path, 'train'),
-                target_size=(img_size, img_size),
+                target_size=(self.flag.image_height, self.flag.image_width),
+                # target_size=(img_size, img_size),
                 batch_size=batch_size,
                 color_mode='rgb',
                 class_mode=None,
@@ -95,7 +96,8 @@ class Trainer:
 
         validation_generator = test_datagen.flow_from_directory(
                 os.path.join(self.flag.data_path, 'val'),
-                target_size=(img_size, img_size),
+                target_size=(self.flag.image_height, self.flag.image_width),
+                # target_size=(img_size, img_size),
                 batch_size=batch_size,
                 shuffle=False,
                 color_mode='rgb',
@@ -110,9 +112,11 @@ class Trainer:
         set_session(tf.Session(config=config))
 
         lr = self.flag.initial_learning_rate
-        model = models.vgg_like_regressor(self.flag)
+        # model = models.vgg_like_regressor(self.flag)
+        model = models.vgg_like_regressor_1out(self.flag)
                 
         model.compile(optimizer=Adam(lr=lr, decay=1e-6), loss='mse', metrics=['mae'])
+        # model.compile(optimizer=RMSprop(lr=lr), loss='mse', metrics=['mae'])
         
         if self.flag.pretrained_weight_path != None:
             model.load_weights(self.flag.pretrained_weight_path)
